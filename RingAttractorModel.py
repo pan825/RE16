@@ -48,7 +48,7 @@ class RingAttractorNetwork:
         self.parameters = parameters or NetworkParameters()
         
         # Simulation results
-        self.time_points: Optional[np.ndarray] = None
+        self.time: Optional[np.ndarray] = None
         self.firing_rates: Optional[np.ndarray] = None
         
         # Processed results
@@ -122,7 +122,7 @@ class RingAttractorNetwork:
         self.half_PEN = half_PEN
         
         # Store results (append if multiple simulations)
-        self.time_points = utils.add_array(self.time_points, time_points, axis=0) 
+        self.time = utils.add_array(self.time, time_points, axis=0) 
         self.firing_rates = utils.add_array(self.firing_rates, firing_rates, axis=1)
 
     def process_data(self):
@@ -156,7 +156,7 @@ class RingAttractorNetwork:
                 os.makedirs(folder)
             file_path = os.path.join(folder, file_path)
     
-        time_points = self.time_points
+        time_points = self.time
         firing_rates = self.firing_rates
             
         with open(file_path, 'w') as file:
@@ -187,7 +187,7 @@ class RingAttractorNetwork:
         fr_conv, t_conv = utils.conv(fr_with_zeros.T)
         eb_fr = utils.eip_to_eb_fast(fr_conv.T)
         
-        self.time_points = time_points
+        self.time = time_points
         self.firing_rates = firing_rates.T
         self.processed_time = t_conv
         self.processed_firing_rates = eb_fr.T
@@ -256,7 +256,7 @@ class RingAttractorNetwork:
         Returns:
             Tuple of (time_points, firing_rates)
         """
-        return self.time_points, self.firing_rates
+        return self.time, self.firing_rates
 
     def get_processed_results(self) -> Tuple[np.ndarray, np.ndarray]:
         """Get processed simulation results.
@@ -372,7 +372,7 @@ class RingAttractorNetwork:
     def reset(self):
         """Clear all simulation and analysis results."""
         self.firing_rates = None
-        self.time_points = None
+        self.time = None
         self.processed_time = None
         self.processed_firing_rates = None
         self.gaussian_position = None
@@ -432,7 +432,7 @@ class RingAttractorNetwork:
             figsize: Figure size
             eip2eb: Whether to convert EIP to EB coordinates
         """
-        time_points = self.time_points
+        time_points = self.time
         firing_rates = self.firing_rates.T
         
         if eip2eb:
