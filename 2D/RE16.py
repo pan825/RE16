@@ -4,14 +4,15 @@ import numpy as np
 import time
 from typing import Tuple, List, Dict, Optional, Union
 from equations import *
+import tqdm
 
-def periodic_gaussian(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
+def visual_cue(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
     """
     param: 
-    theta: the angle of the visual input
-    index: the index of the neuron
-    stimulus: the strength of the visual input
-    sigma: the standard deviation of the Gaussian distribution
+        theta: the angle of the visual input
+        index: the index of the neuron
+        stimulus: the strength of the visual input
+        sigma: the standard deviation of the Gaussian distribution
     """
     A = stimulus
     phi = index * np.pi/8
@@ -34,7 +35,9 @@ def simulator(
         stimulus_strength = 0.05, 
         stimulus_location = 0*np.pi, # from 0 to np.pi
         shifter_strength = 0.015,
+            shifter_strength_v = 0.015,
         half_PEN = 'right',
+        half_PENv = 'right',
         
         t_epg_open = 200, # stimulus
         t_epg_close = 500,    # no stimulus
@@ -203,8 +206,6 @@ def simulator(
     PE8v_syn = []
     EIv_syn = []
 
-
-    # create connections with symmetric connections ensured
     
     # EPG_EPG
     print("Creating EPG-EPG connections...")
@@ -525,13 +526,13 @@ def simulator(
     A = stimulus_strength
     
     for i in range(0,8):
-        EPG_groups[i].I = periodic_gaussian(theta_r, i, A)
+        EPG_groups[i].I = visual_cue(theta_r, i, A)
     for i in range(8,16):
-        EPG_groups[i].I = periodic_gaussian(theta_l, i, A)
+        EPG_groups[i].I = visual_cue(theta_l, i, A)
     for i in range(0,16):
-        EPGv_groups[i].I = periodic_gaussian(theta_r, i, A)
+        EPGv_groups[i].I = visual_cue(theta_r, i, A)
     for i in range(8,16):
-        EPGv_groups[i].I = periodic_gaussian(theta_l, i, A)
+        EPGv_groups[i].I = visual_cue(theta_l, i, A)
     
     net.run(t_epg_open*ms)
 
@@ -541,12 +542,14 @@ def simulator(
 
     print('body rotation')
     if half_PEN == 'right':
-        for i in range(8):
-            PEN_groups[i].I = shifter_strength
+        for i in range(8): PEN_groups[i].I = shifter_strength
     elif half_PEN == 'left':
-        for i in range(8,16):
-            PEN_groups[i].I = shifter_strength
-
+        for i in range(8,16): PEN_groups[i].I = shifter_strength
+    if half_PENv == 'right':
+        for i in range(8): PENv_groups[i].I = shifter_strength_v
+    elif half_PENv == 'left':
+        for i in range(8,16): PENv_groups[i].I = shifter_strength_v
+            
     net.run(t_pen_open * ms)
     
     last = len(SM.t)

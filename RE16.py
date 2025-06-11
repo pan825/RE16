@@ -21,14 +21,14 @@ def periodic_gaussian(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
 
 def simulator( 
         # parameters
-        w_EE = 0.772, # EB <-> EB
-        w_EI = 0.209, # R -> EB
-        w_IE = 0.743, # EB -> R
+        w_EE = 0.719, # EB <-> EB
+        w_EI = 0.143, # R -> EB
+        w_IE = 0.740, # EB -> R
         w_II = 0.01, # R <-> R
         w_PP = 0.01, # PEN <-> PEN
-        w_EP = 0.008, # EB -> PEN 
-        w_PE = 0.811, # PEN -> EB
-        sigma = 0.001, # noise level
+        w_EP = 0.012, # EB -> PEN 
+        w_PE = 0.709, # PEN -> EB
+        sigma = 0.0001, # noise level
         
         stimulus_strength = 0.05, 
         stimulus_location = 0*np.pi, # from 0 to np.pi
