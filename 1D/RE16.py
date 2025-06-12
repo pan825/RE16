@@ -4,7 +4,7 @@ import numpy as np
 import time
 from typing import Tuple, List, Dict, Optional, Union
 
-def periodic_gaussian(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
+def visual_cue(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
     """
     param: 
     theta: the angle of the visual input
