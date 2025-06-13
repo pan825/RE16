@@ -148,7 +148,7 @@ class Simulator:
         Transforms the raw firing rates into a format suitable for analysis,
         including conversion to ellipsoid body (EB) representation.
         """
-        t, fr = self.get_raw_results()
+        t, fr = self.time, self.fr
         
         # Insert zeros at positions 8 and 9 (missing neurons in the circuit)
         expanded_rates = np.insert(fr, 8, 0, axis=0)
@@ -215,10 +215,8 @@ class Simulator:
         Returns:
             Tuple containing time points, positions, amplitudes, and widths
         """
-        t, fr = self.get_processed_results()
-        gt, gx, gfr, gw = fit.gau_fit(
-            t, fr
-        )
+        t, fr = self.t_proc, self.fr_proc
+        gt, gx, gfr, gw = fit.gau_fit(t, fr)
         
         # Translate the Gaussian parameters to a consistent coordinate system
         gt, gx, gfr, gw = fit.translate_gau(
