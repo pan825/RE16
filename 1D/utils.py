@@ -326,39 +326,7 @@ def add_array(existing_array, new_data, axis=0):
     else:
         return np.concatenate((existing_array, new_array), axis=axis) 
 
-def fit_slope(g_t, g_x, t_threshold=0.7, t_end=None):
-    """
-    Fit a linear regression to g_x vs g_t data after a specified time threshold
-    and return the slope, correlation coefficient, and standard error.
-    
-    Parameters:
-    g_t (ndarray): Time points
-    g_x (ndarray): Angular positions
-    t_threshold (float): Time point after which to fit the data (default: 0.7)
-    
-    Returns:
-    tuple: (slope, r, std_err) where:
-        slope: Slope of the fitted line
-        r: Correlation coefficient
-        std_err: Standard error of the slope
-    """
-    # Convert inputs to numpy arrays if they aren't already
-    g_t = np.array(g_t)
-    g_x = np.array(g_x)
-    
-    # Filter data after t_threshold
-    if t_end is None:
-        mask = g_t >= t_threshold
-    else:
-        mask = (g_t >= t_threshold) & (g_t <= t_end)
-    t_filtered = g_t[mask]
-    x_filtered = g_x[mask]
-    
-    slope, intercept, r_value, p_value, std_err = stats.linregress(t_filtered, x_filtered)
-    mean_x = np.mean(x_filtered)
-    CV = np.std(x_filtered) / mean_x
-    
-    return slope, r_value, std_err, CV
+
 
 def neuronID2rad(neuron):
     """

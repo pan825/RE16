@@ -8,9 +8,12 @@ import os
 from brian2 import *
 import RE16
 import utils
+import fit
+import visualize
+
 
 @dataclass
-class NetworkParameters:
+class Parameters:
     """Parameters for the ring attractor network model.
     
     All weights represent connection strengths between neural populations.
@@ -25,28 +28,28 @@ class NetworkParameters:
     sigma: float = 0.0001  # Noise level
 
 
-class RE16Simulator:
+class Simulator:
     """Implementation of a ring attractor neural network model.
     
     This class handles simulation, data processing, analysis, and visualization
     of a ring attractor network based on the Drosophila central complex.
     """
     
-    def __init__(self, parameters: NetworkParameters = None):
+    def __init__(self, parameters: Parameters = None):
         """Initialize the ring attractor network with given parameters.
         
         Args:
             parameters: Configuration parameters for the network
         """
-        self.parameters = parameters or NetworkParameters()
+        self.parameters = parameters or Parameters()
         
         # Simulation results
         self.time: Optional[np.ndarray] = None
         self.fr: Optional[np.ndarray] = None
         
         # Processed results
-        self.processed_time: Optional[np.ndarray] = None
-        self.processed_fr: Optional[np.ndarray] = None
+        self.t_proc: Optional[np.ndarray] = None
+        self.fr_proc: Optional[np.ndarray] = None
         
         # Gaussian fit results
         self.gt: Optional[np.ndarray] = None
@@ -155,8 +158,8 @@ class RE16Simulator:
         conv_rates, conv_time = utils.conv(expanded_rates)
         eb_fr = utils.eip_to_eb_fast(conv_rates.T)
     
-        self.processed_time = conv_time
-        self.processed_fr = eb_fr.T
+        self.t_proc = conv_time
+        self.fr_proc = eb_fr.T
     
     def save(self, file_path='simulation_results.dat', folder=None):
         """Save simulation results to a file.
@@ -203,8 +206,8 @@ class RE16Simulator:
         
         self.time = t
         self.fr = fr.T
-        self.processed_time = t_conv
-        self.processed_fr = eb_fr.T
+        self.t_proc = t_conv
+        self.fr_proc = eb_fr.T
 
     def fit_gaussian(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Fit a Gaussian to the processed firing rate data.
@@ -213,12 +216,12 @@ class RE16Simulator:
             Tuple containing time points, positions, amplitudes, and widths
         """
         t, fr = self.get_processed_results()
-        gt, gx, gfr, gw = utils.gau_fit(
+        gt, gx, gfr, gw = fit.gau_fit(
             t, fr
         )
         
         # Translate the Gaussian parameters to a consistent coordinate system
-        gt, gx, gfr, gw = utils.translate_gau(
+        gt, gx, gfr, gw = fit.translate_gau(
             gt, gx, gfr, gw
         )
         
@@ -244,7 +247,7 @@ class RE16Simulator:
             
         self._ensure_gaussian_fit()
             
-        slope, r_value, std_err, CV = utils.fit_slope(
+        slope, r2 , std_err, CV = fit.fit_slope(
             self.gt, 
             self.gx, 
             time_threshold, 
@@ -252,7 +255,7 @@ class RE16Simulator:
         )
         
         self.slope = slope
-        self.r_squared = r_value**2
+        self.r_squared = r2
         self.std_err = std_err
         self.coefficient_variation = CV
         self.angular_velocity = self.slope * 2 * np.pi / 16
@@ -260,7 +263,7 @@ class RE16Simulator:
         # Rotations per second
         self.rotations_per_second = self.angular_velocity / (2 * np.pi)
         
-        return slope, r_value**2, std_err, CV
+        return slope, r2, std_err, CV
         
 
     
@@ -268,14 +271,14 @@ class RE16Simulator:
         """Clear all simulation and analysis results."""
         self.fr = None
         self.time = None
-        self.processed_time = None
-        self.processed_fr = None
+        self.t_proc = None
+        self.fr_proc = None
         self.gx = None
         self.gt = None
         self.gw = None
         self.gfr = None
         self.slope = None
-        self.r_value = None
+        self.r_squared = None
         self.std_err = None
         self.angular_velocity = None
         
@@ -286,7 +289,7 @@ class RE16Simulator:
             
     def _ensure_processed_data(self):
         """Ensure that data processing has been performed."""
-        if self.processed_time is None:
+        if self.t_proc is None:
             self.process_data()
 
     def plot(self, title=None, file_name=None, region='EB', y_label='Time (s)', 
@@ -305,8 +308,8 @@ class RE16Simulator:
             plot_gaussian: Whether to plot the Gaussian fit
             figsize: Figure size
         """
-        t, fr = self.get_processed_results()
-        plot_results(t, fr, title, file_name, region, 
+        self._ensure_processed_data()
+        visualize.plot_results(self.t_proc, self.fr_proc, title, file_name, region, 
                     y_label, cmap, save, folder, plot_gaussian, figsize)
         
     def plot_raw(self, title=None, file_name=None, region='EB', y_label='Time (s)', 
@@ -347,8 +350,8 @@ class RE16Simulator:
         plt.yticks([0, 4, 11, 15], ['R8', 'R4', 'L4', 'L8'] if region == 'EB' else [0, 5, 10, 15])
         
         if plot_gaussian:
-            processed_time, processed_fr = self.get_processed_results()
-            g_t, g_x, g_y, g_w = utils.gau_fit(processed_time, processed_fr)
+            self._ensure_processed_data()
+            g_t, g_x, g_y, g_w = fit.gau_fit(self.t_proc, self.fr_proc)
             plt.plot(g_t, g_x, 'r', linewidth=3)
         
         if save:
@@ -370,9 +373,9 @@ class RE16Simulator:
         print(f'Rotations/sec:    {self.rotations_per_second:>8} ± {self.std_err/16:>8} [Hz]')
         
         # Color code r_squared based on quality
-        if abs(self.r_value) >= 0.95:
+        if abs(self.r_squared) >= 0.95:
             print('\033[92m' + f'R-squared: {self.r_squared:.3f}' + '\033[0m')
-        elif np.isnan(self.r_value):
+        elif np.isnan(self.r_squared):
             print('\033[91m' + f'R-squared: {self.r_squared:.3f}' + '\033[0m')
         else: 
             print(f'R-squared: {self.r_squared:.3f}')
@@ -403,43 +406,10 @@ class RE16Simulator:
         print('='*40)
         
         
-def plot_results(t, fr, title=None, file_name=None, region='EB', 
-              y_label='Time (s)', cmap='Blues', save=False, folder='figures', 
-              plot_gaussian=True, figsize=(10, 2.5)):
-    """Plot neural activity data.
-    
-    Args:
-        t: Array of time points
-        fr: Matrix of firing rates (neurons x time)
-        title: Plot title
-        file_name: Filename for saving
-        region: Brain region label
-        y_label: Y-axis label
-        cmap: Colormap
-        save: Whether to save the plot
-        folder: Folder for saving
-        plot_gaussian: Whether to plot the Gaussian fit
-        figsize: Figure size
-    """
-    plt.figure(figsize=figsize)
-    plt.pcolormesh(t, range(fr.shape[0]), fr, 
-                  cmap=cmap, shading='nearest')   
-    plt.colorbar(label='Firing Rate [Hz]')
-    plt.xlabel(y_label)
-    plt.ylabel('EB region' if region == 'EB' else 'Neuron ID')
-    plt.yticks([0, 4, 11, 15], ['R8', 'R4', 'L4', 'L8'] if region == 'EB' else [0, 5, 10, 15])
-    plt.title(title)
 
-    if plot_gaussian:
-        g_t, g_x, g_y, g_w = utils.gau_fit(t, fr)
-        plt.plot(g_t, g_x, 'r', linewidth=3)
-        
-    if save:
-        plt.savefig(os.path.join(folder, file_name))
-        plt.close()
         
 if __name__ == '__main__':
-    network = RE16Simulator()
+    network = Simulator()
     network.run(stimulus_strength=0.05, stimulus_location=0.0, shifter_strength=0.015, half_PEN='right')
     network.process_data()
     network.save(file_path='simulation_results.dat', folder='results')
