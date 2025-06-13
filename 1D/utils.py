@@ -140,15 +140,14 @@ def eip_to_eb(eip_fr, circuit:str='symmetry'):
 
 def eip_to_eb_fast(eip_fr: np.ndarray, circuit: str = 'symmetry') -> np.ndarray:
     """
-    將 eip_fr (shape=(T,18)) 乘上預先計算好的 weight matrix，
-    一次得到 eb_fr (shape=(T,16))。
+    將 eip_fr (shape=(T,18)) 乘上預先計算好的 weight matrix 一次得到 eb_fr (shape=(T,16))
     """
     eip = np.asarray(eip_fr)
     W = _WEIGHT_MATRICES[circuit]
     eb_fr = eip.dot(W)
     return eb_fr
 
-@njit(parallel=True, nopython=True, fastmath=True)
+@njit(parallel=True, fastmath=True)
 def eip_to_eb_numba(eip_fr: np.ndarray):
     """
     eip_fr: shape = (T, 18)
