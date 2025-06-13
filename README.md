@@ -23,7 +23,7 @@ RE16/
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/RE16.git
+git clone https://github.com/pan825/RE16.git
 cd RE16
 ```
 
