@@ -1,10 +1,11 @@
 from brian2 import *
-import matplotlib.pyplot as plt
+import brian2cuda
 import numpy as np
 import time
-from typing import Tuple, List, Dict, Optional, Union
 from equations import *
-import tqdm
+set_device('cuda_standalone',
+           build_on_run=False)
+
 
 def visual_cue(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
     """
@@ -34,8 +35,9 @@ def simulator(
         
         stimulus_strength = 0.05, 
         stimulus_location = 0*np.pi, # from 0 to np.pi
+        stimulus_location_v = 0*np.pi,
         shifter_strength = 0.015,
-            shifter_strength_v = 0.015,
+        shifter_strength_v = 0.015,
         half_PEN = 'right',
         half_PENv = 'right',
         
@@ -221,7 +223,7 @@ def simulator(
         PEN_syn.append(Synapses(PEN_groups[k2], PEN_groups[k2], Ach_eqs_PP, on_pre='s_ach += w_PP', method='euler'))
         PEN_syn[k2].connect(condition='i != j')
     
-    # EPG_R and R_EPG for reciprocal connections
+    # EPG_R and R_EPG
     # EPG to R
     print("Creating EPG-R connections...")
     S_EI = Synapses(EPG, R, model=Ach_eqs_EI, on_pre='s_ach += w_EI', method='euler')
@@ -236,7 +238,7 @@ def simulator(
         for b2 in range(0,3):
             S_IE.connect(i=b2, j=a2)
     
-    # R_R with symmetric connections
+    # R <-> R
     print("Creating R-R connections...")
     S_II = Synapses(R, R, model=GABA_eqs_i, on_pre='s_GABAA += w_II', method='euler')
     S_II.connect(condition='i != j')
@@ -342,30 +344,32 @@ def simulator(
     PE1L_syn2[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
 
     print('vertical connections')
-## vertical connections
+    #########################
+    ## vertical connections
+    #########################
     
     # EPGv_EPGv
     print('Creating EPGv-EPGv connections...')
     for k in range(0,16):
         # EPG to EPG
-        EPGv_syn.append(Synapses(EPGv_groups[k], EPGv_groups[k], Ach_eqs_v, on_pre='s_achv += w_EE', method='euler'))
+        EPGv_syn.append(Synapses(EPGv_groups[k], EPGv_groups[k], Ach_eqs_v, on_pre='s_ach += w_EE', method='euler'))
         EPGv_syn[k].connect(condition='i != j')
     
     # PENv_PENv
     print('Creating PENv-PENv connections...')
     for k2 in range(0,16):
         # PEN to PEN
-        PENv_syn.append(Synapses(PENv_groups[k2], PENv_groups[k2], Ach_eqs_PPv, on_pre='s_achv += w_PP', method='euler'))
+        PENv_syn.append(Synapses(PENv_groups[k2], PENv_groups[k2], Ach_eqs_PPv, on_pre='s_ach += w_PP', method='euler'))
         PENv_syn[k2].connect(condition='i != j')
     
-    # EPG to R
+    # EPGv to R
     print('Creating EPGv-R connections...')
-    Sv_EI = Synapses(EPGv, R, model=Ach_eqs_EIv, on_pre='s_achv += w_EI', method='euler')
+    Sv_EI = Synapses(EPGv, R, model=Ach_eqs_EIv, on_pre='s_ach += w_EI', method='euler')
     for a in range(0,48):
         for b in range(0,3):
             Sv_EI.connect(i=a, j=b)
     
-    # R to EPG
+    # R to EPGv (use vertical GABA synapse model)
     print('Creating R-EPGv connections...')
     Sv_IE = Synapses(R, EPGv, model=GABAv_eqs, on_pre='s_GABAA += w_IE', method='euler')
     for a2 in range(0,48):
@@ -376,7 +380,7 @@ def simulator(
     print('Creating EPGv-PENv connections...')
     for k3 in range(0,16):
         # EPG to PEN
-        EPv_syn.append(Synapses(EPGv_groups[k3], PENv_groups[k3], Ach_eqs_EPv, on_pre='s_achv += w_EP', method='euler'))
+        EPv_syn.append(Synapses(EPGv_groups[k3], PENv_groups[k3], Ach_eqs_EPv, on_pre='s_ach += w_EP', method='euler'))
         EPv_syn[k3].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     ###
@@ -386,54 +390,54 @@ def simulator(
     print('Creating PENv0-6 -> EPGv0-8 connections (PE2Rv)...')
     for k4 in range(0,7):
         # PEN to EPG
-        PE2Rv_syn.append(Synapses(PENv_groups[k4], EPGv_groups[k4+1], Ach_eqs_PE2Rv, on_pre='s_achv += 2*w_PE', method='euler'))
+        PE2Rv_syn.append(Synapses(PENv_groups[k4], EPGv_groups[k4+1], Ach_eqs_PE2Rv, on_pre='s_ach += 2*w_PE', method='euler'))
         PE2Rv_syn[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     print('Creating PENv0-6 -> EPGv0-8 connections (PE1Rv)...')
     for k4 in range(0,6):
         # PEN to EPG
-        PE1Rv_syn.append(Synapses(PENv_groups[k4], EPGv_groups[k4+2], Ach_eqs_PE1Rv, on_pre='s_achv += 1*w_PE', method='euler'))
+        PE1Rv_syn.append(Synapses(PENv_groups[k4], EPGv_groups[k4+2], Ach_eqs_PE1Rv, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1Rv_syn[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     print('Creating PE1Rv connection...')
-    PE1Rv_syn.append(Synapses(PENv_groups[6], EPGv_groups[0], Ach_eqs_PE1Rv, on_pre='s_achv += 1*w_PE', method='euler'))
+    PE1Rv_syn.append(Synapses(PENv_groups[6], EPGv_groups[0], Ach_eqs_PE1Rv, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1Rv_syn[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     # PEN9-15 -> EPG0-8 
     print('Creating PENv9-15 -> EPGv0-8 connections (PE2R2v)...')
     for k4 in range(0,7):
         # PEN to EPG
-        PE2Rv_syn2.append(Synapses(PENv_groups[k4+9], EPGv_groups[k4+1], Ach_eqs_PE2R2v, on_pre='s_achv += 2*w_PE', method='euler'))
+        PE2Rv_syn2.append(Synapses(PENv_groups[k4+9], EPGv_groups[k4+1], Ach_eqs_PE2R2v, on_pre='s_ach += 2*w_PE', method='euler'))
         PE2Rv_syn2[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     print('Creating PENv9-15 -> EPGv0-8 connections (PE1R2v)...')
     for k4 in range(0,6):
         # PEN to EPG
-        PE1Rv_syn2.append(Synapses(PENv_groups[k4+9], EPGv_groups[k4+2], Ach_eqs_PE1R2v, on_pre='s_achv += 1*w_PE', method='euler'))
+        PE1Rv_syn2.append(Synapses(PENv_groups[k4+9], EPGv_groups[k4+2], Ach_eqs_PE1R2v, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1Rv_syn2[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     print('Creating PE1R2v connection...')
-    PE1Rv_syn2.append(Synapses(PENv_groups[15], EPGv_groups[0], Ach_eqs_PE1R2v, on_pre='s_achv += 1*w_PE', method='euler'))
+    PE1Rv_syn2.append(Synapses(PENv_groups[15], EPGv_groups[0], Ach_eqs_PE1R2v, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1Rv_syn2[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     # PEN7-8
     print('Creating PENv7 connections...')
     PE7v_syn = []
     # PEN7 -> EPG connections
-    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[0], Ach_eqs_PE7v, on_pre='s_achv += 2*w_PE', method='euler'))
-    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[1], Ach_eqs_PE7v, on_pre='s_achv += 1*w_PE', method='euler'))
-    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[15], Ach_eqs_PE7v, on_pre='s_achv += 2*w_PE', method='euler'))
-    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[14], Ach_eqs_PE7v, on_pre='s_achv += 1*w_PE', method='euler'))
+    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[0], Ach_eqs_PE7v, on_pre='s_ach += 2*w_PE', method='euler'))
+    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[1], Ach_eqs_PE7v, on_pre='s_ach += 1*w_PE', method='euler'))
+    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[15], Ach_eqs_PE7v, on_pre='s_ach += 2*w_PE', method='euler'))
+    PE7v_syn.append(Synapses(PENv_groups[7], EPGv_groups[14], Ach_eqs_PE7v, on_pre='s_ach += 1*w_PE', method='euler'))
     for k in range(0,4):
         PE7v_syn[k].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     print('Creating PENv8 connections...')
     PE8v_syn = []
     # PEN8 -> EPG connections
-    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[0], Ach_eqs_PE8v, on_pre='s_achv += 2*w_PE', method='euler'))
-    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[1], Ach_eqs_PE8v, on_pre='s_achv += 1*w_PE', method='euler'))
-    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[15], Ach_eqs_PE8v, on_pre='s_achv += 2*w_PE', method='euler'))
-    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[14], Ach_eqs_PE8v, on_pre='s_achv += 1*w_PE', method='euler'))
+    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[0], Ach_eqs_PE8v, on_pre='s_ach += 2*w_PE', method='euler'))
+    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[1], Ach_eqs_PE8v, on_pre='s_ach += 1*w_PE', method='euler'))
+    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[15], Ach_eqs_PE8v, on_pre='s_ach += 2*w_PE', method='euler'))
+    PE8v_syn.append(Synapses(PENv_groups[8], EPGv_groups[14], Ach_eqs_PE8v, on_pre='s_ach += 1*w_PE', method='euler'))
     for k in range(0,4):
         PE8v_syn[k].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
@@ -441,35 +445,35 @@ def simulator(
     print('Creating PENv0-6 -> EPGv8-15 connections (PE2Lv)...')
     for k4 in range(0,7):
         # PEN to EPG
-        PE2Lv_syn.append(Synapses(PENv_groups[k4], EPGv_groups[k4+8], Ach_eqs_PE2Lv, on_pre='s_achv += 2*w_PE', method='euler'))
+        PE2Lv_syn.append(Synapses(PENv_groups[k4], EPGv_groups[k4+8], Ach_eqs_PE2Lv, on_pre='s_ach += 2*w_PE', method='euler'))
         PE2Lv_syn[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     print('Creating PENv0-6 -> EPGv8-15 connections (PE1Lv)...')
     for k4 in range(0,6):
         # PEN to EPG
-        PE1Lv_syn.append(Synapses(PENv_groups[k4+1], EPGv_groups[k4+8], Ach_eqs_PE1Lv, on_pre='s_achv += 1*w_PE', method='euler'))
+        PE1Lv_syn.append(Synapses(PENv_groups[k4+1], EPGv_groups[k4+8], Ach_eqs_PE1Lv, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1Lv_syn[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
         
     print('Creating PE1Lv connection...')
-    PE1Lv_syn.append(Synapses(PENv_groups[0], EPGv_groups[15], Ach_eqs_PE1Lv, on_pre='s_achv += 1*w_PE', method='euler'))
+    PE1Lv_syn.append(Synapses(PENv_groups[0], EPGv_groups[15], Ach_eqs_PE1Lv, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1Lv_syn[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     # PEN9-15 -> EPG8-15
     print('Creating PENv9-15 -> EPGv8-15 connections (PE2L2v)...')
     for k4 in range(0,7):
         # PEN to EPG
-        PE2Lv_syn2.append(Synapses(PENv_groups[k4+9], EPGv_groups[k4+8], Ach_eqs_PE2L2v, on_pre='s_achv += 2*w_PE', method='euler'))
+        PE2Lv_syn2.append(Synapses(PENv_groups[k4+9], EPGv_groups[k4+8], Ach_eqs_PE2L2v, on_pre='s_ach += 2*w_PE', method='euler'))
         PE2Lv_syn2[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
     print('Creating PENv9-15 -> EPGv8-15 connections (PE1L2v)...')
     for k4 in range(0,6):
         # PEN to EPG
-        PE1Lv_syn2.append(Synapses(PENv_groups[k4+10], EPGv_groups[k4+8], Ach_eqs_PE1L2v, on_pre='s_achv += 1*w_PE', method='euler'))
+        PE1Lv_syn2.append(Synapses(PENv_groups[k4+10], EPGv_groups[k4+8], Ach_eqs_PE1L2v, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1Lv_syn2[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
 
     print('Creating PE1L2v connection...')
     # Additional reciprocal connection if necessary
-    PE1Lv_syn2.append(Synapses(PENv_groups[9], EPGv_groups[15], Ach_eqs_PE1L2v, on_pre='s_achv += 1*w_PE', method='euler'))
+    PE1Lv_syn2.append(Synapses(PENv_groups[9], EPGv_groups[15], Ach_eqs_PE1L2v, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1Lv_syn2[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
 
     print("All synapse connections completed!")
@@ -523,6 +527,10 @@ def simulator(
     stimulus_location %= 2*np.pi
     theta_r = stimulus_location/2
     theta_l = theta_r + np.pi
+    
+    theta_r_v = stimulus_location_v/2
+    theta_l_v = theta_r_v + np.pi
+    
     A = stimulus_strength
     
     for i in range(0,8):
@@ -530,14 +538,16 @@ def simulator(
     for i in range(8,16):
         EPG_groups[i].I = visual_cue(theta_l, i, A)
     for i in range(0,16):
-        EPGv_groups[i].I = visual_cue(theta_r, i, A)
+        EPGv_groups[i].I = visual_cue(theta_r_v, i, A)
     for i in range(8,16):
-        EPGv_groups[i].I = visual_cue(theta_l, i, A)
+        EPGv_groups[i].I = visual_cue(theta_l_v, i, A)
     
     net.run(t_epg_open*ms)
 
     for i in range(0,16):
         EPG_groups[i].I = 0
+    for i in range(0,16):
+        EPGv_groups[i].I = 0
     net.run(t_epg_close * ms)
 
     print('body rotation')
