@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import time
 import os
 from brian2 import *
-import RE16
+import RE16_td
 import utils
 import fit
 import visualize
@@ -46,6 +46,7 @@ class Simulator:
         # Simulation results
         self.time: Optional[np.ndarray] = None
         self.fr: Optional[np.ndarray] = None
+        self.pen_currents: Optional[np.ndarray] = None
         
         # Processed results
         self.t_proc: Optional[np.ndarray] = None
@@ -109,7 +110,10 @@ class Simulator:
             stimulus_strength: float = None,
             stimulus_location: float = None,
             shifter_strength: float = None,
-            half_PEN: str = None):
+            half_PEN: str = None,
+            PEN_input_frequency: float = 1.0,
+            PEN_input_phase: float = 0.0,
+            PEN_input_oscillation_amplitude: float = 1):
 
         if t_epg_open is not None:
             self.t_epg_open = t_epg_open
@@ -126,7 +130,7 @@ class Simulator:
         if half_PEN is not None:
             self.half_PEN = half_PEN
         
-        t, fr = RE16.simulator(
+        t, fr, pen_currents = RE16_td.simulator(
             **self.parameters.__dict__,
             stimulus_strength=self.stimulus_strength,
             stimulus_location=self.stimulus_location,
@@ -135,12 +139,16 @@ class Simulator:
             t_epg_open=self.t_epg_open,
             t_epg_close=self.t_epg_close,
             t_pen_open=self.t_pen_open,
+            input_oscillation_amplitude=PEN_input_oscillation_amplitude,
+            input_frequency=PEN_input_frequency,
+            input_phase=PEN_input_phase,
         )
         
         
         # Store results (append if multiple simulations)
         self.time = utils.add_array(self.time, t, axis=0) 
         self.fr = utils.add_array(self.fr, fr, axis=1)
+        self.pen_currents = utils.add_array(self.pen_currents, pen_currents, axis=1)
 
     def process_data(self):
         """Process raw simulation data for analysis.
@@ -355,7 +363,20 @@ class Simulator:
         if save:
             plt.savefig(os.path.join(folder, file_name))
             plt.close()
+            
+    def xt_plot(self):
+        """Plot the position (gx) over time."""
+        self._ensure_gaussian_fit()
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.gt, self.gx * 2 * np.pi/16, 'b-', linewidth=2)
+        plt.xlabel('Time (s)')
+        plt.ylabel('Position (rad)')
+        plt.title('Position vs Time')
+        plt.grid(True, alpha=0.3)
+        plt.show()
     
+            
     def summary(self):
         """Print a summary of the simulation and analysis results."""
         self._ensure_gaussian_fit()

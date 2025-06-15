@@ -1,10 +1,10 @@
 from brian2 import *
-import brian2cuda
+# import brian2cuda
 import numpy as np
 import time
 from equations import *
-set_device('cuda_standalone',
-           build_on_run=False)
+# set_device('cuda_standalone',
+#            build_on_run=False)
 
 
 def visual_cue(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
