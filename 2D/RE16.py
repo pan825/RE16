@@ -1,10 +1,9 @@
 from brian2 import *
-# import brian2cuda
+import brian2cuda
 import numpy as np
 import time
 from equations import *
-# set_device('cuda_standalone',
-#            build_on_run=False)
+
 
 
 def visual_cue(theta, index, stimulus = 0.03, sigma = 2 * np.pi/8):
@@ -513,8 +512,44 @@ def simulator(
     PRM14v = PopulationRateMonitor(EPGv_groups[14])
     PRM15v = PopulationRateMonitor(EPGv_groups[15])
 
-    SM = SpikeMonitor(EPG)
-    SMv = SpikeMonitor(EPGv)
+    PRM0p = PopulationRateMonitor(PEN_groups[0])
+    PRM1p = PopulationRateMonitor(PEN_groups[1])
+    PRM2p = PopulationRateMonitor(PEN_groups[2])
+    PRM3p = PopulationRateMonitor(PEN_groups[3])
+    PRM4p = PopulationRateMonitor(PEN_groups[4])
+    PRM5p = PopulationRateMonitor(PEN_groups[5])
+    PRM6p = PopulationRateMonitor(PEN_groups[6])
+    PRM7p = PopulationRateMonitor(PEN_groups[7])
+    PRM8p = PopulationRateMonitor(PEN_groups[8])
+    PRM9p = PopulationRateMonitor(PEN_groups[9])
+    PRM10p = PopulationRateMonitor(PEN_groups[10])
+    PRM11p = PopulationRateMonitor(PEN_groups[11])
+    PRM12p = PopulationRateMonitor(PEN_groups[12])
+    PRM13p = PopulationRateMonitor(PEN_groups[13])
+    PRM14p = PopulationRateMonitor(PEN_groups[14])
+    PRM15p = PopulationRateMonitor(PEN_groups[15])
+    
+    PRM0pv = PopulationRateMonitor(PENv_groups[0])
+    PRM1pv = PopulationRateMonitor(PENv_groups[1])
+    PRM2pv = PopulationRateMonitor(PENv_groups[2])
+    PRM3pv = PopulationRateMonitor(PENv_groups[3])
+    PRM4pv = PopulationRateMonitor(PENv_groups[4])
+    PRM5pv = PopulationRateMonitor(PENv_groups[5])
+    PRM6pv = PopulationRateMonitor(PENv_groups[6])
+    PRM7pv = PopulationRateMonitor(PENv_groups[7])
+    PRM8pv = PopulationRateMonitor(PENv_groups[8])
+    PRM9pv = PopulationRateMonitor(PENv_groups[9])
+    PRM10pv = PopulationRateMonitor(PENv_groups[10])
+    PRM11pv = PopulationRateMonitor(PENv_groups[11])
+    PRM12pv = PopulationRateMonitor(PENv_groups[12])
+    PRM13pv = PopulationRateMonitor(PENv_groups[13])
+    PRM14pv = PopulationRateMonitor(PENv_groups[14])
+    PRM15pv = PopulationRateMonitor(PENv_groups[15])
+
+    PRMR = PopulationRateMonitor(R)
+
+    # SM = SpikeMonitor(EPG)
+    # SMv = SpikeMonitor(EPGv)
     print('collect')
     net=Network(collect())
     net.add(EPG_groups,EPG_syn,PEN_groups,PEN_syn,EP_syn,PE2R_syn,PE2L_syn,PE1R_syn,PE1L_syn,PE2R_syn2,PE2L_syn2,PE1R_syn2,PE1L_syn2,PE7_syn,PE8_syn)
@@ -561,11 +596,13 @@ def simulator(
         for i in range(8,16): PENv_groups[i].I = shifter_strength_v
             
     net.run(t_pen_open * ms)
-    
-    last = len(SM.t)
     end  = time.time()
     print(f'\r{time.strftime("%H:%M:%S")} : {(end - start)//60:.0f} min {(end - start)%60:.1f} sec -> eval end', flush=True)
     
+    # Build and execute the generated CUDA/C++ standalone code **before** accessing the recorded variables
+    # (required because we set `build_on_run=False` in `set_device` at the top of this file)
+    device.build(run=True, clean=True)
+
     firing_rate = [PRM0.smooth_rate(width=5*ms),
                     PRM1.smooth_rate(width=5*ms),
                     PRM2.smooth_rate(width=5*ms),
@@ -600,10 +637,50 @@ def simulator(
                     PRM14v.smooth_rate(width=5*ms),
                     PRM15v.smooth_rate(width=5*ms),]
     
+    firing_rate_pen = [PRM0.smooth_rate(width=5*ms),
+                       PRM1.smooth_rate(width=5*ms),
+                       PRM2.smooth_rate(width=5*ms),
+                       PRM3.smooth_rate(width=5*ms),
+                       PRM4.smooth_rate(width=5*ms),
+                       PRM5.smooth_rate(width=5*ms),
+                       PRM6.smooth_rate(width=5*ms),
+                       PRM7.smooth_rate(width=5*ms),
+                       PRM8.smooth_rate(width=5*ms),
+                       PRM9.smooth_rate(width=5*ms),
+                       PRM10.smooth_rate(width=5*ms),
+                       PRM11.smooth_rate(width=5*ms),
+                       PRM12.smooth_rate(width=5*ms),
+                       PRM13.smooth_rate(width=5*ms),
+                       PRM14.smooth_rate(width=5*ms),
+                       PRM15.smooth_rate(width=5*ms),]
+    
+    firing_rate_pen_v = [PRM0pv.smooth_rate(width=5*ms),
+                       PRM1pv.smooth_rate(width=5*ms),
+                       PRM2pv.smooth_rate(width=5*ms),
+                       PRM3pv.smooth_rate(width=5*ms),
+                       PRM4pv.smooth_rate(width=5*ms),
+                       PRM5pv.smooth_rate(width=5*ms),
+                       PRM6pv.smooth_rate(width=5*ms),
+                       PRM7pv.smooth_rate(width=5*ms),  
+                       PRM8pv.smooth_rate(width=5*ms),
+                       PRM9pv.smooth_rate(width=5*ms),
+                       PRM10pv.smooth_rate(width=5*ms),
+                       PRM11pv.smooth_rate(width=5*ms),
+                       PRM12pv.smooth_rate(width=5*ms),
+                       PRM13pv.smooth_rate(width=5*ms),
+                       PRM14pv.smooth_rate(width=5*ms),
+                       PRM15pv.smooth_rate(width=5*ms),]
+    
+    firing_rate_r = [PRMR.smooth_rate(width=5*ms),]
+    
+    firing_rate_pen_array = np.array(firing_rate_pen)
+    firing_rate_pen_array_v = np.array(firing_rate_pen_v)
+    firing_rate_r_array = np.array(firing_rate_r)
+
     firing_rate_array = np.array(firing_rate)
     firing_rate_array_v = np.array(firing_rate_v)
     eval_time = np.linspace(0, len(firing_rate[0])/10000, len(firing_rate[0]))
-    return eval_time, firing_rate_array, firing_rate_array_v
+    return eval_time, firing_rate_array, firing_rate_array_v, firing_rate_pen_array, firing_rate_pen_array_v, firing_rate_r_array
 
 if __name__ == '__main__':
-    eval_time, firing_rate, firing_rate_v = simulator()    
+    eval_time, firing_rate, firing_rate_v, firing_rate_pen, firing_rate_pen_v, firing_rate_r = simulator()    

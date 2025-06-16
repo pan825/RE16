@@ -130,6 +130,9 @@ def simulator(
     PEN_groups.append(PEN[42:45]) # PEN15
     PEN_groups.append(PEN[45:48]) # PEN16
 
+    R_groups = []
+    R_groups.append(R[0:3]) # R1
+
     EPG_syn = []
     PEN_syn = []
     PE2R_syn = []
@@ -287,6 +290,25 @@ def simulator(
     PRM14 = PopulationRateMonitor(EPG_groups[14])
     PRM15 = PopulationRateMonitor(EPG_groups[15])
 
+    PRM_PEN0 = PopulationRateMonitor(PEN_groups[0])
+    PRM_PEN1 = PopulationRateMonitor(PEN_groups[1])
+    PRM_PEN2 = PopulationRateMonitor(PEN_groups[2])
+    PRM_PEN3 = PopulationRateMonitor(PEN_groups[3])
+    PRM_PEN4 = PopulationRateMonitor(PEN_groups[4])
+    PRM_PEN5 = PopulationRateMonitor(PEN_groups[5])
+    PRM_PEN6 = PopulationRateMonitor(PEN_groups[6])
+    PRM_PEN7 = PopulationRateMonitor(PEN_groups[7])
+    PRM_PEN8 = PopulationRateMonitor(PEN_groups[8])
+    PRM_PEN9 = PopulationRateMonitor(PEN_groups[9])
+    PRM_PEN10 = PopulationRateMonitor(PEN_groups[10])
+    PRM_PEN11 = PopulationRateMonitor(PEN_groups[11])
+    PRM_PEN12 = PopulationRateMonitor(PEN_groups[12])
+    PRM_PEN13 = PopulationRateMonitor(PEN_groups[13])
+    PRM_PEN14 = PopulationRateMonitor(PEN_groups[14])
+    PRM_PEN15 = PopulationRateMonitor(PEN_groups[15])
+    
+    PRM_R0 = PopulationRateMonitor(R_groups[0])
+
 
     SM = SpikeMonitor(EPG)
     
@@ -343,8 +365,33 @@ def simulator(
                     PRM14.smooth_rate(width=5*ms),
                     PRM15.smooth_rate(width=5*ms),]
     firing_rate_array = np.array(firing_rate)
+    
+    
+    firing_rate_pen = [PRM_PEN0.smooth_rate(width=5*ms),
+                       PRM_PEN1.smooth_rate(width=5*ms),
+                       PRM_PEN2.smooth_rate(width=5*ms),
+                       PRM_PEN3.smooth_rate(width=5*ms),
+                       PRM_PEN4.smooth_rate(width=5*ms),
+                       PRM_PEN5.smooth_rate(width=5*ms),
+                       PRM_PEN6.smooth_rate(width=5*ms),
+                       PRM_PEN7.smooth_rate(width=5*ms),
+                       PRM_PEN8.smooth_rate(width=5*ms),
+                       PRM_PEN9.smooth_rate(width=5*ms),
+                       PRM_PEN10.smooth_rate(width=5*ms),
+                       PRM_PEN11.smooth_rate(width=5*ms),
+                       PRM_PEN12.smooth_rate(width=5*ms),
+                       PRM_PEN13.smooth_rate(width=5*ms),
+                       PRM_PEN14.smooth_rate(width=5*ms),
+                       PRM_PEN15.smooth_rate(width=5*ms),]
+    firing_rate_pen_array = np.array(firing_rate_pen)
+    
+    firing_rate_r = [PRM_R0.smooth_rate(width=5*ms),]
+    firing_rate_r_array = np.array(firing_rate_r)
+    
+    
+    
     eval_time = np.linspace(0, len(firing_rate[0])/10000, len(firing_rate[0]))
-    return eval_time, firing_rate_array
+    return eval_time, firing_rate_array, firing_rate_pen_array, firing_rate_r_array
 
 if __name__ == '__main__':
-    eval_time, firing_rate = simulator()    
+    t, fr, fr_pen, fr_r = simulator()    
