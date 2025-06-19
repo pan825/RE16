@@ -145,24 +145,19 @@ def simulator(
     PE1L_syn2 = []
 
     EP_syn = []
-
-    # create connections with symmetric connections ensured
     
     # EPG_EPG
     for k in range(0,16):
         # EPG to EPG
         EPG_syn.append(Synapses(EPG_groups[k], EPG_groups[k], Ach_eqs, on_pre='s_ach += w_EE', method='euler'))
         EPG_syn[k].connect(condition='i != j')
-        # EPG to EPG reciprocal is inherently handled by connecting within the same group with condition
     
     # PEN_PEN
     for k2 in range(0,16):
         # PEN to PEN
         PEN_syn.append(Synapses(PEN_groups[k2], PEN_groups[k2], Ach_eqs_PP, on_pre='s_ach += w_PP', method='euler'))
         PEN_syn[k2].connect(condition='i != j')
-        # PEN to PEN reciprocal is inherently handled by connecting within the same group with condition
     
-    # EPG_R and R_EPG for reciprocal connections
     # EPG to R
     S_EI = Synapses(EPG, R, model=Ach_eqs_EI, on_pre='s_ach += w_EI', method='euler')
     for a in range(0,48):
@@ -184,7 +179,6 @@ def simulator(
         # EPG to PEN
         EP_syn.append(Synapses(EPG_groups[k3], PEN_groups[k3], Ach_eqs_EP, on_pre='s_ach += w_EP', method='euler'))
         EP_syn[k3].connect(j='u for u in range(0,3)', skip_if_invalid=True)
-        # PEN to EPG reciprocal connections are handled below
     
     ###
     
@@ -194,14 +188,12 @@ def simulator(
         # PEN to EPG
         PE2R_syn.append(Synapses(PEN_groups[k4], EPG_groups[k4+1], Ach_eqs_PE2R, on_pre='s_ach += 2*w_PE', method='euler'))
         PE2R_syn[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
-        # EPG to PEN reciprocal can be defined if needed
     
     for k4 in range(0,6):
         # PEN to EPG
         PE1R_syn.append(Synapses(PEN_groups[k4], EPG_groups[k4+2], Ach_eqs_PE1R, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1R_syn[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
-    # Additional reciprocal connection if necessary
     PE1R_syn.append(Synapses(PEN_groups[6], EPG_groups[0], Ach_eqs_PE1R, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1R_syn[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
@@ -216,7 +208,6 @@ def simulator(
         PE1R_syn2.append(Synapses(PEN_groups[k4+9], EPG_groups[k4+2], Ach_eqs_PE1R2, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1R_syn2[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
-    # Additional reciprocal connection if necessary
     PE1R_syn2.append(Synapses(PEN_groups[15], EPG_groups[0], Ach_eqs_PE1R2, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1R_syn2[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
@@ -229,7 +220,6 @@ def simulator(
     PE7_syn.append(Synapses(PEN_groups[7], EPG_groups[14], Ach_eqs_PE7, on_pre='s_ach += 1*w_PE', method='euler'))
     for k in range(0,4):
         PE7_syn[k].connect(j='u for u in range(0,3)', skip_if_invalid=True)
-    # EPG to PEN reciprocal connections can be added similarly if required
     
     PE8_syn = []
     # PEN8 -> EPG connections
@@ -239,7 +229,6 @@ def simulator(
     PE8_syn.append(Synapses(PEN_groups[8], EPG_groups[14], Ach_eqs_PE8, on_pre='s_ach += 1*w_PE', method='euler'))
     for k in range(0,4):
         PE8_syn[k].connect(j='u for u in range(0,3)', skip_if_invalid=True)
-    # EPG to PEN reciprocal connections can be added similarly if required
     
     # PEN0-6 -> EPG8-15
     for k4 in range(0,7):
@@ -252,7 +241,6 @@ def simulator(
         PE1L_syn.append(Synapses(PEN_groups[k4+1], EPG_groups[k4+8], Ach_eqs_PE1L, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1L_syn[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
         
-    # Additional reciprocal connection if necessary
     PE1L_syn.append(Synapses(PEN_groups[0], EPG_groups[15], Ach_eqs_PE1L, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1L_syn[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
@@ -267,7 +255,6 @@ def simulator(
         PE1L_syn2.append(Synapses(PEN_groups[k4+10], EPG_groups[k4+8], Ach_eqs_PE1L2, on_pre='s_ach += 1*w_PE', method='euler'))
         PE1L_syn2[k4].connect(j='u for u in range(0,3)', skip_if_invalid=True)
     
-    # Additional reciprocal connection if necessary
     PE1L_syn2.append(Synapses(PEN_groups[9], EPG_groups[15], Ach_eqs_PE1L2, on_pre='s_ach += 1*w_PE', method='euler'))
     PE1L_syn2[6].connect(j='u for u in range(0,3)', skip_if_invalid=True)
 
